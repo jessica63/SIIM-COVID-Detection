@@ -1,0 +1,11 @@
+project_name: siim
+image_dir: /data2/chest_xray/siim-covid19-detection/preprocessed/images/
+data_list: /data2/chest_xray/siim-covid19-detection/entry/fold_0.json
+
+obj_list: [
+ 'Negative',
+ 'Typical',
+ 'Indeterminate',
+ 'Atypical'
+]
+stats: [0.28, 0.47, 0.17, 0.08]
