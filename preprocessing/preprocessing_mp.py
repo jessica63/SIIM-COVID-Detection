@@ -8,10 +8,10 @@ import tqdm
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from ensemble_boxes import weighted_boxes_fusion as wbf
+# from ensemble_boxes import weighted_boxes_fusion as wbf
 
 from load_dicom import save_dcm_to_img
-from load_json import read_annotation
+# from load_json import read_annotation
 from utils import draw_bbox
 
 
@@ -85,8 +85,8 @@ def df2bbox(study_df, image_df, img_shape, mode):
                 'Indeterminate Appearance', 'Atypical Appearance'
             ]
     ].to_numpy()
-    cls = np.where(one_hot == 1)[1]
-
+    # cls = np.where(one_hot == 1)[1]
+    cls = 0
     bbox = image_df['label'].values[0].split(' ')
     bbox_ls = []
 
@@ -127,7 +127,7 @@ def processing_case(img_info_dict):
         save_dir=img_dir,
         force_replace=False,
         return_pixel_data=True,
-        # **img_info_dict["kwargs"]
+        **img_info_dict["kwargs"]
     )
 
     # Create bboxes
@@ -178,12 +178,12 @@ def main(args):
     image_df = pd.read_csv(args.image_csv)
 
     # npz_dirname = "img_npz"
-    img_dirname = "img_png"
-    txt_dirname = "bbox_txt"
-    # clahe_args = [
-    #     {"clipLimit": 2, "tileGridSize": (5, 5)},
-    #     {"clipLimit": 4., "tileGridSize": (20, 20)}
-    # ]
+    img_dirname = "clahe_images"
+    txt_dirname = "clahe_bbox_txt"
+    clahe_args = [
+        {"clipLimit": 2, "tileGridSize": (5, 5)},
+        {"clipLimit": 4., "tileGridSize": (20, 20)}
+    ]
 
     print("Preparing argment list for running function...")
     info_dict_list = [
@@ -195,7 +195,7 @@ def main(args):
             "save_base_dir": args.save_base_dir,
             "img_dirname": img_dirname,
             "txt_dirname": txt_dirname,
-            # "kwargs": {"clahe_args": clahe_args}
+            "kwargs": {"clahe_args": clahe_args}
         }
         for img_id, img_image_df in image_df.groupby(by="id")
         for study_id in img_image_df['StudyInstanceUID']
@@ -229,21 +229,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--train-dicom-dir",
         type=str,
-        default="/data2/chest_xray/siim-covid19-detection/train/",
+        default="/data2/chest_xray/siim-covid19-detection/raw/train/",
         help="Path of train dicom data directory"
     )
 
     parser.add_argument(
         "--study-csv",
         type=str,
-        default="/data2/chest_xray/siim-covid19-detection/train_study_level.csv",
+        default="/data2/chest_xray/siim-covid19-detection/raw/train_study_level.csv",
         help="Path of train study level label directory"
     )
 
     parser.add_argument(
         "--image-csv",
         type=str,
-        default="/data2/chest_xray/siim-covid19-detection/train_image_level.csv",
+        default="/data2/chest_xray/siim-covid19-detection/raw/train_image_level.csv",
         help="Path of train image level label directory"
     )
 

@@ -4,7 +4,6 @@ from typing import Optional, List
 import cv2
 import pydicom
 import numpy as np
-import pylibjpeg
 from pydicom.pixel_data_handlers.util import apply_voi_lut
 
 
