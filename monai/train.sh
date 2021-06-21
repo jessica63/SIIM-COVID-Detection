@@ -1,8 +1,18 @@
 #!/bin/bash
 
-CUDA_VISIBLE_DEVICE=0,1 python train.py \
-    -f siim.yml \
-    -e 100 \
-    -b 10 \
-    -p ./test \
-    -c model/best.pth
+for FOLD in $(seq 0 4)
+do
+    DIR='0621_5fold_${FOLD}'
+
+    mkdir ${DIR}
+
+    cp siim.yml ${DIR}
+    cp train.sh ${DIR}
+
+    CUDA_VISIBLE_DEVICES=2 python train.py \
+        -f siim_${FOLD}.yml \
+        -e 50 \
+        -b 64 \
+        -p ${DIR}/ \
+        -c best.pth
+done

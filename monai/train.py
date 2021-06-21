@@ -24,10 +24,10 @@ from torch.utils.tensorboard import SummaryWriter
 
 import monai
 from monai.metrics import compute_roc_auc
-from monai.transforms import Activations, AsDiscrete
+from monai.transforms import Activations, AsDiscrete, RandFlipd, RandRotated
 from monai.transforms import AddChanneld, Compose, LoadImaged
 from monai.transforms import Resized, ScaleIntensityRanged, ToTensord
-from monai.transforms import RandShiftIntensityd
+from monai.transforms import RandShiftIntensityd, AsChannelFirstd
 from monai.networks.nets.efficientnet import EfficientNetBN
 
 
@@ -65,7 +65,10 @@ def main(args):
     train_transforms = Compose(
         [
             LoadImaged(keys=["image"]),
-            AddChanneld(keys=["image"]),
+            # AddChanneld(keys=["image"]),
+            AsChannelFirstd(keys=["image"]),
+            RandFlipd(prob=0.5, keys=["image"]),
+            RandRotated(range_x=1, range_y=1, keys=["image"]),
             Resized(keys=["image"], spatial_size=(400, 400)),
             ToTensord(keys=["image"]),
         ]
@@ -74,7 +77,8 @@ def main(args):
     val_transforms = Compose(
         [
             LoadImaged(keys=["image"]),
-            AddChanneld(keys=["image"]),
+            # AddChanneld(keys=["image"]),
+            AsChannelFirstd(keys=["image"]),
             Resized(keys=["image"], spatial_size=(400, 400)),
             ToTensord(keys=["image"]),
         ]
@@ -102,17 +106,21 @@ def main(args):
     model = EfficientNetBN(
             "efficientnet-b4",
             spatial_dims=2,
-            in_channels=1,
+            in_channels=3,
             num_classes=num_cls
     ).to(device)
-    model = torch.nn.DataParallel(model, device_ids=[0, 1])
-    loss_function = torch.nn.CrossEntropyLoss()
+
+    stats = torch.tensor(params.stats)
+    weight = 1.0 / stats
+    weight = weight / weight.sum()
+    loss_function = torch.nn.CrossEntropyLoss(weight=weight.to(device))
     optimizer = torch.optim.Adam(model.parameters(), 1e-3, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer,
         T_max=args.epoch,
         eta_min=1e-5
     )
+
     act = Activations(softmax=True)
     to_onehot = AsDiscrete(to_onehot=True, n_classes=4)
 
@@ -173,7 +181,10 @@ def main(args):
                 if auc_metric > best_metric:
                     best_metric = auc_metric
                     best_metric_epoch = epoch + 1
-                    torch.save(model.state_dict(), f"{args.ckpt}")
+                    torch.save(
+                            model.state_dict(),
+                            f"{args.prefix}/{args.ckpt}"
+                    )
                     print("saved new best metric model")
                 print(
                     "current epoch: {} current accuracy: {:.4f} current AUC: {:.4f} best AUC: {:.4f} at epoch {}".format(
