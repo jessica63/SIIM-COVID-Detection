@@ -1,0 +1,9 @@
+project_name: siim
+image_dir: /work/Lung/SIIM/preprocessed/clahe_images_640/
+data_list: /home/u/jessica63/projs/SIIM-COVID-Detection/entry/2_class/tmp_fold_0.json
+
+obj_list: [
+ 'opacity'
+]
+
+stats: [0.7]

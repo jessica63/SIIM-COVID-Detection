@@ -1,0 +1,12 @@
+project_name: siim
+image_dir: /work/Lung/SIIM/preprocessed/clahe_images_640/
+data_list: /home/u/jessica63/projs/SIIM-COVID-Detection/entry/tmp_fold_0.json
+
+obj_list: [
+ 'Negative',
+ 'Typical',
+ 'Indeterminate',
+ 'Atypical'
+]
+
+stats: [0.28, 0.47, 0.17, 0.08]
