@@ -33,21 +33,21 @@ def main(args):
             if tmp['boxes'].isnull().sum() == len(tmp):
                 for j in range(len(tmp)):
                     img_id = tmp.iloc[j]['id']
-                    label = 0
+                    label = 1
                     dic, cnt = check_fold(n, json_file, img_id, label, dic, cnt)
                 continue
 
             for i in range(len(tmp[tmp.boxes.notnull()])):
                 img_id = tmp.iloc[i]['id']
-                label = 1
+                label = 0
                 dic, cnt = check_fold(n, json_file, img_id, label, dic, cnt)
 
         else:
             img_id = tmp['id'].item()
             if tmp['boxes'].isnull().item():
-                label = 0
-            else:
                 label = 1
+            else:
+                label = 0
             dic, cnt = check_fold(n, json_file, img_id, label, dic, cnt)
 
     for i in range(5):
