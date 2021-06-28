@@ -178,7 +178,7 @@ def main(args):
     image_df = pd.read_csv(args.image_csv)
 
     # npz_dirname = "img_npz"
-    img_dirname = "clahe_images"
+    img_dirname = "clahe_images_640"
     txt_dirname = "clahe_bbox_txt"
     clahe_args = [
         {"clipLimit": 2, "tileGridSize": (5, 5)},

@@ -13,7 +13,8 @@ def read_xray(
     fix_monochrome=True,
     normalization=False,
     apply_window=False,
-    range_correct=False
+    range_correct=False,
+    resize_shape=(0, 0)
 ) -> np.ndarray:
     dicom = pydicom.read_file(dcm_path)
     # For ignoring the UserWarning: "Bits Stored" value (14-bit)...
@@ -50,6 +51,9 @@ def read_xray(
     if fix_monochrome and dicom.PhotometricInterpretation == "MONOCHROME1":
         data = np.amax(data) - data
 
+    if resize_shape != (0, 0):
+        data = cv2.resize(data, resize_shape, interpolation=cv2.INTER_AREA)
+
     return data
 
 
@@ -80,7 +84,8 @@ def save_dcm_to_img(
             fix_monochrome=True,
             normalization=True,
             apply_window=True,
-            range_correct=True
+            range_correct=True,
+            resize_shape=(640, 640)
         )
         # Convert to uint8
         data = (data * 255.).astype(np.uint8)
