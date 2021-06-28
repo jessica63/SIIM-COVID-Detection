@@ -2,7 +2,7 @@
 
 for FOLD in $(seq 0 4)
 do
-    DIR=0621_5fold_${FOLD}
+    DIR=0625_5fold_img640_${FOLD}
 
     mkdir ${DIR}
 

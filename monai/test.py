@@ -18,6 +18,7 @@ import yaml
 
 import tqdm
 import numpy as np
+import pandas as pd
 import csv
 import matplotlib.pyplot as plt
 import torch
@@ -47,7 +48,7 @@ class Params:
 
 def main(args):
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    params = Params(args.project_file)
+    params = Params(os.path.join(args.prefix, args.project_file))
 
     data_list = json.load(open(params.data_list))
     num_cls = len(data_list["label_format"])
@@ -87,7 +88,7 @@ def main(args):
             in_channels=3,
             num_classes=num_cls
     ).to(device)
-    model.load_state_dict(torch.load(args.weight))
+    model.load_state_dict(torch.load(os.path.join(args.prefix, args.weight)))
     model.eval
 
     act = Activations(softmax=True)
@@ -108,6 +109,21 @@ def main(args):
 
         y_onehot = to_onehot(y)
         y_pred_onehot = act(y_pred)
+
+        if args.save_result:
+            df = pd.DataFrame(
+                {
+                    "UID": f["image"],
+                    "Negative": y_pred[:, 0],
+                    "Typical": y_pred[:, 1],
+                    "Indeterminate": y_pred[:, 2],
+                    "Atypical": y_pred[:, 3],
+                    "class": y_pred_onehot
+                }
+                for f in val_files
+            )
+            df.to_csv(os.path.join(args.prefix, "test_result.csv"))
+
         auc_metric = compute_roc_auc(y_pred_onehot, y_onehot)
         cm = confusion_matrix(y_onehot.argmax(dim=1).cpu(), y_pred_onehot.argmax(dim=1).cpu())
         aps = []
@@ -159,6 +175,7 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--batch_size", type=int, help="training batch size")
     parser.add_argument("-p", "--prefix", type=str, help="prefix path")
     parser.add_argument("-l", "--log", type=str, help="test log file")
+    parser.add_argument("--save_result", action='store_true', help="save result")
     args = parser.parse_args()
 
     main(args)

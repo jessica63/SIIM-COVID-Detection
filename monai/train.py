@@ -30,6 +30,9 @@ from monai.transforms import Resized, ScaleIntensityRanged, ToTensord
 from monai.transforms import RandShiftIntensityd, AsChannelFirstd
 from monai.networks.nets.efficientnet import EfficientNetBN
 
+from sklearn.metrics import average_precision_score
+from utils import EMA
+
 
 class Params:
     def __init__(self, project_file):
@@ -67,9 +70,9 @@ def main(args):
             LoadImaged(keys=["image"]),
             # AddChanneld(keys=["image"]),
             AsChannelFirstd(keys=["image"]),
-            RandFlipd(prob=0.5, keys=["image"]),
+            RandFlipd(prob=0.3, keys=["image"]),
             RandRotated(range_x=1, range_y=1, keys=["image"]),
-            Resized(keys=["image"], spatial_size=(400, 400)),
+            Resized(keys=["image"], spatial_size=(640, 640)),
             ToTensord(keys=["image"]),
         ]
     )
@@ -79,7 +82,7 @@ def main(args):
             LoadImaged(keys=["image"]),
             # AddChanneld(keys=["image"]),
             AsChannelFirstd(keys=["image"]),
-            Resized(keys=["image"], spatial_size=(400, 400)),
+            Resized(keys=["image"], spatial_size=(640, 640)),
             ToTensord(keys=["image"]),
         ]
     )
@@ -109,6 +112,9 @@ def main(args):
             in_channels=3,
             num_classes=num_cls
     ).to(device)
+
+    ema = EMA(model, 0.999)
+    ema.register()
 
     stats = torch.tensor(params.stats)
     weight = 1.0 / stats
@@ -145,6 +151,7 @@ def main(args):
             loss = loss_function(outputs, labels)
             loss.backward()
             optimizer.step()
+            ema.update()
             epoch_loss += loss.item()
             epoch_len = len(train_ds) // train_loader.batch_size
             train_acc = np.where(
@@ -155,10 +162,12 @@ def main(args):
             writer.add_scalar("running/loss", loss.item(), epoch_len * epoch + step)
         epoch_loss /= step
         print(f"epoch {epoch + 1} average loss: {epoch_loss:.4f}")
+        writer.add_scalar("running/lr", scheduler.get_last_lr()[0], epoch + 1)
         scheduler.step()
 
         if (epoch + 1) % val_interval == 0:
             model.eval()
+            ema.apply_shadow()
             with torch.no_grad():
                 y_pred = torch.tensor([], dtype=torch.float32, device=device)
                 y = torch.tensor([], dtype=torch.long, device=device)
@@ -178,8 +187,18 @@ def main(args):
                 y_onehot = to_onehot(y)
                 y_pred_onehot = act(y_pred)
                 auc_metric = compute_roc_auc(y_pred_onehot, y_onehot)
-                if auc_metric > best_metric:
-                    best_metric = auc_metric
+
+                aps = []
+                for cls in range(num_cls):
+                    ap = average_precision_score(
+                            y_onehot.cpu()[:, cls],
+                            y_pred_onehot.cpu()[:, cls]
+                    )
+                    aps.append(ap)
+                mean_ap = np.average(aps)
+
+                if mean_ap > best_metric:
+                    best_metric = mean_ap
                     best_metric_epoch = epoch + 1
                     torch.save(
                             model.state_dict(),
@@ -187,13 +206,16 @@ def main(args):
                     )
                     print("saved new best metric model")
                 print(
-                    "current epoch: {} current accuracy: {:.4f} current AUC: {:.4f} best AUC: {:.4f} at epoch {}".format(
-                        epoch + 1, acc_metric, auc_metric, best_metric, best_metric_epoch
-                    )
+                        "current epoch: {} current AUC: {:.4f} current AP: {:.4f} best AP: {:.4f} at epoch {}".format(
+                            epoch + 1, auc_metric, mean_ap, best_metric, best_metric_epoch
+                        )
                 )
                 writer.add_scalar("valid/val_loss", valid_loss, epoch + 1)
                 writer.add_scalar("valid/val_accuracy", acc_metric, epoch + 1)
                 writer.add_scalar("valid/val_AUC", auc_metric, epoch + 1)
+                writer.add_scalar("valid/val_mAP", mean_ap, epoch + 1)
+            ema.restore()
+
     print(f"train completed, best_metric: {best_metric:.4f} at epoch: {best_metric_epoch}")
     writer.close()
 

@@ -1,18 +1,15 @@
 #!/bin/bash
 
-for FOLD in $(seq 0 4)
-do
-    DIR='0621_5fold_${FOLD}'
+DIR=0625_EMA
 
-    mkdir ${DIR}
+mkdir ${DIR}
 
-    cp siim.yml ${DIR}
-    cp train.sh ${DIR}
+cp ./config/siim_0.yml ${DIR}
+cp train.sh ${DIR}
 
-    CUDA_VISIBLE_DEVICES=2 python train.py \
-        -f siim_${FOLD}.yml \
-        -e 50 \
-        -b 64 \
-        -p ${DIR}/ \
-        -c best.pth
-done
+CUDA_VISIBLE_DEVICES=2 python train.py \
+    -f ./config/siim_0.yml \
+    -e 20 \
+    -b 16 \
+    -p ${DIR}/ \
+    -c best.pth
