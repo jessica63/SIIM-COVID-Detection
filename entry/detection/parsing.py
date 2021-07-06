@@ -67,17 +67,18 @@ def main(args):
     print(f'There are {len(train_ls)} images in train set.')
     print(f'There are {len(valid_ls)} images in valid set.')
 
-    with open(f"/work/Lung/SIIM/train_list_{args.fold}.txt", 'w') as f:
+    with open(f"{args.save_path}train_list_{args.fold}.txt", 'w') as f:
         f.writelines(train_ls)
-    with open(f"/work/Lung/SIIM/valid_list_{args.fold}.txt", 'w') as f:
+    with open(f"{args.save_path}valid_list_{args.fold}.txt", 'w') as f:
         f.writelines(valid_ls)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train_csv")
-    parser.add_argument("--fold")
-    parser.add_argument("--fold_json")
-    parser.add_argument("--img_dir")
+    parser.add_argument("--train_csv", type=str, default="/data2/chest_xray/siim-covid19-detection/raw/train_image_level.csv")
+    parser.add_argument("--fold", type=int)
+    parser.add_argument("--fold_json", type=str)
+    parser.add_argument("--img_dir", type=str)
+    parser.add_argument("--save_path", type=str)
     args = parser.parse_args()
     main(args)
